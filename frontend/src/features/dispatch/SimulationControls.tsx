@@ -8,9 +8,34 @@ interface SimulationControlsProps {
   disabled?: boolean
 }
 
+// Fallback scenarios if API is loading or network is slow
+const DEFAULT_SCENARIOS: SimulationScenario[] = [
+  {
+    id: 2,
+    name: 'College Class Dismissal Rush',
+    description: '140 students waiting at MITS College at 4:30 PM. Severe shortage requires redistributing spare vehicles from nearby depot/stops.',
+    config: { target_stop_id: 2, simulated_queue: 140, time_of_day: '16:30' },
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 1,
+    name: 'Evening Railway Arrival Spike',
+    description: 'Sudden train arrival at Madanapalle Road Railway Station at 6:30 PM generates 180 passengers needing transit toward town.',
+    config: { target_stop_id: 3, simulated_queue: 180, time_of_day: '18:30' },
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 3,
+    name: 'Depot Fleet Morning Rebalance',
+    description: 'Morning peak at Madanapalle Central Bus Stand with 220 passengers queuing for inter-district commuter routes.',
+    config: { target_stop_id: 1, simulated_queue: 220, time_of_day: '08:45' },
+    created_at: new Date().toISOString(),
+  },
+]
+
 export function SimulationControls({ onScenarioRan, disabled = false }: SimulationControlsProps) {
-  const [scenarios, setScenarios] = useState<SimulationScenario[]>([])
-  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [scenarios, setScenarios] = useState<SimulationScenario[]>(DEFAULT_SCENARIOS)
+  const [selectedId, setSelectedId] = useState<number | null>(2)
   const [loading, setLoading] = useState(false)
   const [lastComparison, setLastComparison] = useState<SimulationComparison | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -18,12 +43,17 @@ export function SimulationControls({ onScenarioRan, disabled = false }: Simulati
   useEffect(() => {
     api.simulation.scenarios()
       .then((data) => {
-        setScenarios(data)
-        if (data.length > 0 && selectedId === null) {
-          setSelectedId(data[1] ? data[1].id : data[0].id)
+        if (data && data.length > 0) {
+          setScenarios(data)
+          if (!selectedId) {
+            setSelectedId(data[0].id)
+          }
         }
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => {
+        // Fallback already in place, but show warning if needed
+        console.warn('Scenarios loaded from static catalog:', err)
+      })
   }, [])
 
   async function handleRunScenario() {

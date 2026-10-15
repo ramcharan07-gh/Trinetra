@@ -67,35 +67,35 @@ export function Dashboard() {
     : recs.data
 
   return (
-    <div className="flex flex-col h-screen bg-slate-100 text-slate-800 font-sans overflow-hidden">
+    <div className="flex flex-col min-h-screen lg:h-screen bg-slate-100 text-slate-800 font-sans lg:overflow-hidden">
       {/* Official Government Transport Portal Header */}
-      <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200 flex-shrink-0 z-10 shadow-xs">
-        <div className="flex items-center gap-4">
+      <header className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-white border-b border-slate-200 flex-shrink-0 z-10 shadow-xs" role="banner">
+        <div className="flex items-center gap-3 sm:gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-blue-700 text-white rounded-md flex items-center justify-center font-black text-lg shadow-xs">
+            <div className="w-9 h-9 bg-blue-700 text-white rounded-md flex items-center justify-center font-black text-lg shadow-xs select-none" aria-hidden="true">
               TR
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-extrabold tracking-tight text-slate-900">
+                <h1 className="text-base font-extrabold tracking-tight text-slate-900">
                   TRINETRA
-                </span>
+                </h1>
                 <span className="text-[10px] bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded border border-slate-200">
                   v2.0
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">
+              <p className="text-[11px] text-slate-500 font-medium hidden sm:block">
                 Public Bus Fleet Dynamic Reallocation & Demand Management Portal
               </p>
             </div>
           </div>
-          <div className="h-6 w-px bg-slate-200 hidden md:block" />
+          <div className="h-6 w-px bg-slate-200 hidden md:block" aria-hidden="true" />
           <DataSourceBadge />
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {lastUpdated && (
-            <span className="text-xs text-slate-500 font-mono hidden md:inline-block">
+            <span className="text-xs text-slate-500 font-mono hidden lg:inline-block">
               Telemetry Synchronized: {formatTime(lastUpdated.toISOString())}
             </span>
           )}
@@ -103,9 +103,10 @@ export function Dashboard() {
           <button
             onClick={generateRecommendations}
             disabled={generating}
-            className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 active:bg-blue-900 disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded-md shadow-xs transition-colors"
+            aria-label="Compute fleet reallocation plan"
+            className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 active:bg-blue-900 disabled:opacity-50 text-white text-xs font-semibold px-3 sm:px-4 py-2 rounded-md shadow-xs transition-colors"
           >
-            {generating ? <LoadingSpinner size="sm" /> : <span>⚡</span>}
+            {generating ? <LoadingSpinner size="sm" /> : <span aria-hidden="true">⚡</span>}
             <span>Compute Reallocation Plan</span>
           </button>
         </div>
@@ -121,18 +122,18 @@ export function Dashboard() {
       />
 
       {genError && (
-        <div className="bg-rose-50 border-b border-rose-200 text-rose-800 text-xs px-6 py-2 flex items-center justify-between">
+        <div className="bg-rose-50 border-b border-rose-200 text-rose-800 text-xs px-4 sm:px-6 py-2 flex items-center justify-between" role="alert">
           <span>{genError}</span>
-          <button onClick={() => setGenError(null)} className="text-rose-600 hover:text-rose-900 font-bold">
+          <button onClick={() => setGenError(null)} aria-label="Dismiss alert" className="text-rose-600 hover:text-rose-900 font-bold p-1">
             ✕
           </button>
         </div>
       )}
 
       {/* Main App Layout */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col lg:flex-row flex-1 lg:overflow-hidden">
         {/* Left Side Control & Monitoring Column */}
-        <aside className="w-84 flex-shrink-0 border-r border-slate-200 bg-slate-50/80 flex flex-col overflow-y-auto">
+        <aside className="w-full lg:w-84 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200 bg-slate-50/80 flex flex-col lg:overflow-y-auto" aria-label="Fleet and Demand Controls">
           <div className="flex flex-col gap-4 p-4">
             {/* Predefined Simulation Scenarios Runner */}
             <SimulationControls onScenarioRan={allRefetch} disabled={generating} />
@@ -172,9 +173,9 @@ export function Dashboard() {
         </aside>
 
         {/* Center / Right Content: Map + Recommendations View */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-white">
-          {/* Map Section (Upper 55%) */}
-          <div className="flex-shrink-0 border-b border-slate-200" style={{ height: '56%' }}>
+        <main className="flex-1 flex flex-col min-h-0 bg-white" role="main">
+          {/* Map Section (Responsive height: 350px on mobile, ~54% on desktop) */}
+          <div className="flex-shrink-0 border-b border-slate-200 h-[360px] lg:h-[54%]" aria-label="Geographical Bus Fleet and Route Map">
             <MapView
               stops={stops.data ?? []}
               vehicles={vehicles.data ?? []}
@@ -183,8 +184,8 @@ export function Dashboard() {
             />
           </div>
 
-          {/* Lower Split: Recommendations Carousel + Dispatch History (44%) */}
-          <div className="flex-1 flex overflow-hidden bg-slate-50">
+          {/* Lower Split: Recommendations Carousel + Dispatch History */}
+          <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden bg-slate-50">
             {/* Dispatch Recommendation Cards Section */}
             <div className="flex-1 flex flex-col overflow-hidden border-r border-slate-200">
               <div className="flex items-center justify-between px-5 py-2.5 border-b border-slate-200 bg-white flex-shrink-0">

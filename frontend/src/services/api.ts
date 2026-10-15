@@ -8,10 +8,16 @@ import type {
   ImpactMetrics,
 } from '@/types'
 
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:8000'
+// Clean base URL and strip any trailing slash
+const rawBase = (import.meta.env.VITE_API_BASE_URL as string) || ''
+const BASE_URL = rawBase.trim().replace(/\/+$/, '')
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  // Ensure path starts with single / and remove double slashes
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+  const targetUrl = BASE_URL ? `${BASE_URL}${cleanPath}` : cleanPath
+
+  const res = await fetch(targetUrl, {
     headers: {
       'Content-Type': 'application/json',
       ...options?.headers,
