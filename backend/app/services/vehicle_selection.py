@@ -72,15 +72,33 @@ class VehicleSelectionService:
             if source_stop.id == hotspot.stop_id:
                 continue
 
-            # Source area risk check: ensure source stop isn't also experiencing severe shortage
-            eligible.append((v, source_stop))
+            # Calculate total available capacity at the source stop across available vehicles
+            source_total_avail = sum(
+                other_v.available_seats
+                for other_v in vehicles
+                if other_v.status == "available"
+                and other_v.latitude is not None
+                and other_v.longitude is not None
+                and not self.dispatch_repo.has_active_approval(other_v.id)
+                and abs(other_v.latitude - source_stop.latitude) < 0.02
+                and abs(other_v.longitude - source_stop.longitude) < 0.02
+            )
+
+            # Source area risk check: ensure removing this vehicle leaves sufficient buffer
+            # (or if it's the only vehicle, ensure source stop itself is not facing significant demand)
+            source_remaining_capacity = max(0, source_total_avail - v.available_seats)
+            if source_remaining_capacity < settings.MIN_SOURCE_CAPACITY and source_total_avail > v.available_seats:
+                # Removing this bus would deplete the source below safety margin while others exist
+                continue
+
+            eligible.append((v, source_stop, source_remaining_capacity))
 
         if not eligible:
             return []
 
         # 2. Compute route & ETA for each eligible vehicle
         scored_candidates = []
-        for v, source_stop in eligible:
+        for v, source_stop, remaining_cap in eligible:
             route_res = await get_route_estimate(
                 origin_lat=v.latitude,
                 origin_lon=v.longitude,
@@ -88,7 +106,7 @@ class VehicleSelectionService:
                 dest_lon=dest_stop.longitude,
             )
 
-            score, reason = self._score_and_explain(v, source_stop, hotspot, route_res)
+            score, reason = self._score_and_explain(v, source_stop, hotspot, route_res, remaining_cap)
 
             rec_base = DispatchRecommendationBase(
                 vehicle_id=v.id,
@@ -124,6 +142,7 @@ class VehicleSelectionService:
         source_stop: Stop,
         hotspot: Hotspot,
         route_res: RouteResult,
+        remaining_source_capacity: int = 40,
     ) -> Tuple[float, str]:
         """
         Calculate composite score 0..100 and generate explainable text.
@@ -133,8 +152,8 @@ class VehicleSelectionService:
         capacity_val = min(1.0, vehicle.available_seats / 55.0)
         # ETA penalty (lower duration is better, capped at 60 min)
         eta_val = max(0.0, 1.0 - (route_res.duration_minutes / 60.0))
-        # Source impact penalty: low risk if source has spare capacity
-        impact_val = 0.9
+        # Source impact factor: scales with remaining capacity (safe if >= 40, min 0.2)
+        impact_val = min(1.0, max(0.2, remaining_source_capacity / 50.0))
 
         # Composite weighted score (0 to 100)
         raw_score = (
@@ -148,8 +167,8 @@ class VehicleSelectionService:
         route_label = "OSRM road network" if route_res.source == "osrm" else "estimated direct corridor"
         reason = (
             f"Recommended because {vehicle.vehicle_code} is available at {source_stop.name} "
-            f"with {vehicle.available_seats} spare seats, reachable in ~{round(route_res.duration_minutes)} min "
-            f"via {route_label} to alleviate the {hotspot.capacity_shortage}-passenger shortage."
+            f"with {vehicle.available_seats} spare seats ({remaining_source_capacity} seats retained at source), "
+            f"reachable in ~{round(route_res.duration_minutes)} min via {route_label} to alleviate the {hotspot.capacity_shortage}-passenger shortage."
         )
         return score, reason
 

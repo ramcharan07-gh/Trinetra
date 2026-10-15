@@ -25,11 +25,11 @@ class DispatchEngineService:
     async def run_pipeline(self) -> List[DispatchRecommendation]:
         """
         Run end-to-end recommendation generation:
-        1. Detect hotspots
-        2. Filter & rank candidate vehicles
-        3. Calculate waiting-time impact
-        4. Persist recommendations into database
-        5. Return enriched recommendations
+        1. Detect hotspots ordered by urgency (shortage DESC)
+        2. Greedily match available candidate vehicles until shortage is met or no vehicles remain
+        3. Prevent assigning the same vehicle across multiple simultaneous hotspots
+        4. Calculate waiting-time impact with remaining queue updates
+        5. Persist recommendations into database and return enriched results
         """
         hotspots = self.demand_service.detect_hotspots()
         existing_recs = self.dispatch_repo.get_all()
@@ -39,18 +39,34 @@ class DispatchEngineService:
             for r in existing_recs
             if r.status in ("proposed", "approved")
         }
+        # Track vehicles already allocated or proposed
+        assigned_vehicles = {
+            r.vehicle_id for r in existing_recs if r.status in ("approved", "proposed")
+        }
 
         created_recs: List[DispatchRecommendation] = []
 
+        # Process hotspots in priority order (most severe first)
         for hotspot in hotspots:
-            candidates = await self.selection_service.find_best_candidates_for_hotspot(hotspot)
+            unmet_shortage = hotspot.capacity_shortage
+            if unmet_shortage <= 0:
+                continue
+
+            # Request up to 4 potential candidates for larger shortages
+            candidates = await self.selection_service.find_best_candidates_for_hotspot(hotspot, max_candidates=4)
+
             for rec_base, route_res in candidates:
+                # Skip vehicle if already allocated in this run or previously proposed/approved
+                if rec_base.vehicle_id in assigned_vehicles:
+                    continue
+
                 key = (rec_base.vehicle_id, rec_base.destination_stop_id)
                 if key in existing_keys:
                     continue
 
                 saved_rec = self.dispatch_repo.create_recommendation(rec_base)
                 existing_keys.add(key)
+                assigned_vehicles.add(rec_base.vehicle_id)
 
                 # Attach geometry
                 if route_res.geometry:
@@ -61,13 +77,18 @@ class DispatchEngineService:
 
                 # Attach impact
                 impact = calculate_waiting_time_impact(
-                    queue_size=hotspot.current_demand,
+                    queue_size=unmet_shortage,
                     bus_capacity=rec_base.useful_capacity,
                     eta_minutes=rec_base.estimated_arrival_minutes or 10.0,
                 )
                 saved_rec.impact = impact
-
                 created_recs.append(saved_rec)
+
+                # Decrement unmet shortage
+                unmet_shortage = max(0, unmet_shortage - rec_base.useful_capacity)
+                if unmet_shortage <= 0:
+                    # Shortage adequately addressed by candidate buses
+                    break
 
         # Return all recommendations (new + existing), enriched
         return self.get_enriched_recommendations()

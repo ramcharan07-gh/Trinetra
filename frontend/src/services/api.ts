@@ -47,10 +47,23 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ notes }),
       }),
+    adjust: (id: number, data: { vehicle_id?: number; destination_stop_id?: number; notes?: string }) =>
+      request<DispatchRecommendation>(`/api/dispatch/recommendations/${id}/adjust`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
   },
 
   history: () => request<DispatchLogEntry[]>('/api/dispatch/history'),
   impact: () => request<ImpactMetrics>('/api/impact'),
+
+  simulation: {
+    scenarios: () => request<import('@/types').SimulationScenario[]>('/api/simulation/scenarios'),
+    run: (scenarioId: number) =>
+      request<import('@/types').SimulationComparison>(`/api/simulation/run/${scenarioId}`, {
+        method: 'POST',
+      }),
+  },
 
   submitObservation: (data: {
     stop_id: number

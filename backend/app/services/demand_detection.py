@@ -64,7 +64,7 @@ class DemandDetectionService:
 
             is_surge = (
                 (surge_ratio >= settings.SURGE_THRESHOLD and capacity_shortage >= settings.MIN_SHORTAGE)
-                or (capacity_shortage >= 30) # Absolute shortage condition
+                or (capacity_shortage >= settings.ABSOLUTE_SHORTAGE_THRESHOLD) # Configurable absolute shortage condition
             )
 
             if is_surge:
@@ -91,11 +91,11 @@ class DemandDetectionService:
         return hotspots
 
     def _calculate_priority(self, shortage: int, surge_ratio: float) -> PriorityLevel:
-        if shortage >= 50 or surge_ratio >= 2.5:
+        if shortage >= settings.PRIORITY_CRITICAL_SHORTAGE or surge_ratio >= settings.PRIORITY_CRITICAL_RATIO:
             return "critical"
-        elif shortage >= 25 or surge_ratio >= 1.8:
+        elif shortage >= settings.PRIORITY_HIGH_SHORTAGE or surge_ratio >= settings.PRIORITY_HIGH_RATIO:
             return "high"
-        elif shortage >= 10:
+        elif shortage >= settings.PRIORITY_MEDIUM_SHORTAGE:
             return "medium"
         return "low"
 

@@ -108,9 +108,38 @@ Trinetra/
 | Routing/ETA | OSRM demo server (Haversine fallback) |
 | Deployment | Vercel (frontend) + Render (backend) |
 
+## Cloud Deployment Guide (Recommended: Render + Vercel)
+
+TRINETRA is pre-configured for automated cloud deployment across **Render** (FastAPI backend) and **Vercel** (React frontend).
+
+### 1. Deploy Backend to Render (Free Tier)
+1. Fork or push your code to your GitHub repository.
+2. Sign in to [Render.com](https://render.com) and click **New + > Web Service** (or **Blueprint** using `render.yaml`).
+3. Connect your repository and configure:
+   - **Root Directory:** `backend`
+   - **Environment:** `Python`
+   - **Build Command:** `pip install -r requirements.txt && python ../database/apply_migrations.py && python ../database/seed/seed_madanapalle.py`
+   - **Start Command:** `python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+4. In **Environment Variables**, set:
+   - `CORS_ORIGINS`: `*`
+   - `DB_PATH`: `../trinetra.db`
+5. Click **Create Web Service**. Once deployed, copy your Render URL (e.g. `https://trinetra-backend.onrender.com`).
+
+### 2. Deploy Frontend to Vercel (Free Tier)
+1. Sign in to [Vercel.com](https://vercel.com) and click **Add New... > Project**.
+2. Select your repository.
+3. Configure the project:
+   - **Root Directory:** click Edit and select `frontend`.
+   - **Framework Preset:** `Vite` (detected automatically).
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+4. Under **Environment Variables**, add:
+   - `VITE_API_BASE_URL`: Your Render backend URL (e.g. `https://trinetra-backend.onrender.com`)
+5. Click **Deploy**. Your dashboard is immediately live with HTTPS and custom domain support!
+
 ## Data Source
 
-All data is **simulated** — clearly labelled `[SIMULATED DATA]` throughout the UI. No actual APSRTC operational data is used.
+All data is **simulated** — clearly labelled `[SIMULATED DATA ENVIRONMENT]` throughout the UI. No actual APSRTC operational data is used.
 
 ## Documentation
 

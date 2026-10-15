@@ -2,20 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    color: #1e293b;
+    background-color: #f8fafc;
+  }
+  code, kbd, samp, pre {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+}
+
 /* Leaflet map container */
 .leaflet-container {
   font-family: inherit;
+  background-color: #f1f5f9;
 }
 
-/* Custom scrollbar for dark panels */
+/* Clean, modern scrollbars for panels */
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #f1f5f9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 2px;
+  background: #cbd5e1;
+  border-radius: 4px;
 }
-
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

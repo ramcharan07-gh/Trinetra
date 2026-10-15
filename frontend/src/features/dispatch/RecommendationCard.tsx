@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function RecommendationCard({ rec, onAction, onSelect, isSelected }: Props) {
-  const [busy, setBusy] = useState<'approve' | 'reject' | null>(null)
+  const [busy, setBusy] = useState<'approve' | 'reject' | 'adjust' | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
   const isProposed = rec.status === 'proposed'
@@ -46,100 +46,125 @@ export function RecommendationCard({ rec, onAction, onSelect, isSelected }: Prop
     }
   }
 
-  const scoreColor =
+  const scoreBadgeBg =
     rec.priority_score >= 70
-      ? 'text-green-400'
+      ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
       : rec.priority_score >= 40
-      ? 'text-amber-400'
-      : 'text-slate-400'
+      ? 'bg-amber-50 text-amber-800 border-amber-300'
+      : 'bg-slate-100 text-slate-700 border-slate-300'
 
   return (
     <div
       onClick={() => onSelect(rec)}
-      className={`p-3 rounded-lg border text-xs cursor-pointer transition-all ${
+      className={`p-3.5 rounded-lg border text-xs cursor-pointer transition-all ${
         isSelected
-          ? 'bg-slate-800 border-blue-500 shadow-lg ring-1 ring-blue-500'
-          : 'bg-slate-800/90 border-slate-700/80 hover:border-slate-600'
+          ? 'bg-blue-50/40 border-blue-600 ring-2 ring-blue-600/20 shadow-md'
+          : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
       }`}
     >
       {/* Top Header */}
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
         <div>
-          <span className="font-bold text-slate-100 text-sm tracking-wide">
-            {rec.vehicle_code}
-          </span>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            {rec.source_stop_name} <span className="text-blue-400">➔</span> {rec.destination_stop_name}
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-900 text-sm font-mono tracking-tight">
+              {rec.vehicle_code}
+            </span>
+            <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${scoreBadgeBg}`}>
+              Score {rec.priority_score.toFixed(0)}
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-600 font-medium mt-0.5">
+            {rec.source_stop_name} <span className="text-blue-600 font-bold">➔</span> {rec.destination_stop_name}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <StatusBadge value={rec.status} />
-          <span className={`text-xs font-mono font-bold ${scoreColor}`}>
-            Score {rec.priority_score.toFixed(0)}
-          </span>
-        </div>
+        <StatusBadge value={rec.status} />
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-3 gap-1.5 mt-2.5 bg-slate-900/60 p-2 rounded text-center">
+      <div className="grid grid-cols-3 gap-2 mt-2.5 bg-slate-50 p-2.5 rounded-md border border-slate-100 text-center">
         <div>
-          <span className="text-[10px] text-slate-400 uppercase block">ETA</span>
-          <span className="font-bold text-slate-200">{formatEta(rec.estimated_arrival_minutes)}</span>
+          <span className="text-[10px] text-slate-500 font-semibold uppercase block">Estimated ETA</span>
+          <span className="font-bold text-slate-800 text-xs font-mono">{formatEta(rec.estimated_arrival_minutes)}</span>
         </div>
         <div>
-          <span className="text-[10px] text-slate-400 uppercase block">Spare Seats</span>
-          <span className="font-bold text-emerald-400">{rec.useful_capacity}</span>
+          <span className="text-[10px] text-slate-500 font-semibold uppercase block">Spare Seats</span>
+          <span className="font-bold text-blue-700 text-xs font-mono">{rec.useful_capacity} places</span>
         </div>
         <div>
-          <span className="text-[10px] text-slate-400 uppercase block">Route Mode</span>
-          <span className="font-bold text-blue-300 capitalize text-[10px]">
-            {rec.route_source === 'osrm' ? 'OSRM Live' : 'Estimated'}
+          <span className="text-[10px] text-slate-500 font-semibold uppercase block">Routing Model</span>
+          <span className="font-semibold text-slate-700 text-[11px]">
+            {rec.route_source === 'osrm' ? 'OSRM Highway' : 'Direct Corridor'}
           </span>
         </div>
       </div>
 
       {/* Waiting Time Impact Comparison */}
       {rec.impact && (
-        <div className="mt-2 p-2 bg-slate-900/40 border border-slate-700/50 rounded flex items-center justify-between text-[11px]">
-          <div>
-            <span className="text-slate-400 block text-[10px]">Avg Wait Impact</span>
-            <span className="text-slate-300 font-mono">
-              {formatWait(rec.impact.baseline_wait_minutes)} ➔{' '}
-              <b className="text-slate-100">{formatWait(rec.impact.projected_wait_minutes)}</b>
-            </span>
-          </div>
-          <div className="text-right">
+        <div className="mt-2.5 p-2.5 bg-emerald-50/50 border border-emerald-200/80 rounded-md flex flex-col gap-1 text-[11px]">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-600 font-semibold text-[10px]">Modelled Delay Relief</span>
             <span
               className={`font-bold font-mono text-xs ${
-                (rec.impact.reduction_percent ?? 0) > 0 ? 'text-green-400' : 'text-slate-400'
+                (rec.impact.reduction_percent ?? 0) > 0 ? 'text-emerald-800' : 'text-slate-600'
               }`}
             >
               {formatReduction(rec.impact.reduction_percent)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between pt-0.5">
+            <span className="text-slate-700 font-mono text-[11px]">
+              {formatWait(rec.impact.baseline_wait_minutes)} ➔{' '}
+              <b className="text-emerald-800">{formatWait(rec.impact.projected_wait_minutes)}</b>
+            </span>
+            <span className="text-[10px] text-slate-600">
+              Absorbs <b className="text-slate-900">{rec.impact.passengers_cleared}</b> pax (Unmet: {rec.impact.remaining_queue})
             </span>
           </div>
         </div>
       )}
 
       {/* Explainable Decision Text */}
-      <p className="mt-2 text-[11px] text-slate-300/80 italic leading-snug">
+      <p className="mt-2.5 text-[11px] text-slate-600 italic leading-relaxed bg-slate-50/80 p-2 rounded border border-slate-100">
         "{rec.reason}"
       </p>
 
       {/* Operator Action Controls */}
       {isProposed && (
-        <div className="flex gap-2 mt-3 pt-2 border-t border-slate-700/70">
+        <div className="flex gap-2 mt-3 pt-2.5 border-t border-slate-100">
           <button
             onClick={handleApprove}
             disabled={busy !== null}
-            className="flex-1 py-1.5 px-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold rounded text-xs transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-1.5 px-3 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 disabled:opacity-50 text-white font-semibold rounded-md text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
           >
             {busy === 'approve' ? <LoadingSpinner size="sm" /> : <span>✓</span>}
-            Approve
+            Approve Dispatch
+          </button>
+          <button
+            onClick={async (e) => {
+              e.stopPropagation()
+              const customNote = window.prompt('Enter operational adjustment note (e.g., Hold 5 mins for connecting train):')
+              if (customNote !== null) {
+                setBusy('adjust')
+                try {
+                  await api.recommendations.adjust(rec.id, { notes: customNote || 'Operational adjustment recorded' })
+                  onAction()
+                } catch (err) {
+                  setActionError(err instanceof Error ? err.message : 'Adjustment failed')
+                } finally {
+                  setBusy(null)
+                }
+              }
+            }}
+            disabled={busy !== null}
+            className="py-1.5 px-3 bg-white hover:bg-slate-50 border border-slate-300 disabled:opacity-50 text-slate-700 font-semibold rounded-md text-xs transition-colors flex items-center justify-center gap-1 shadow-2xs"
+          >
+            <span>✎</span>
+            Adjust
           </button>
           <button
             onClick={handleReject}
             disabled={busy !== null}
-            className="flex-1 py-1.5 px-3 bg-red-700/80 hover:bg-red-600 disabled:opacity-50 text-red-100 font-semibold rounded text-xs transition-colors flex items-center justify-center gap-1.5"
+            className="py-1.5 px-3 bg-white hover:bg-rose-50 border border-rose-300 disabled:opacity-50 text-rose-700 font-semibold rounded-md text-xs transition-colors flex items-center justify-center gap-1 shadow-2xs"
           >
             {busy === 'reject' ? <LoadingSpinner size="sm" /> : <span>✕</span>}
             Reject
@@ -148,9 +173,8 @@ export function RecommendationCard({ rec, onAction, onSelect, isSelected }: Prop
       )}
 
       {actionError && (
-        <p className="mt-2 text-red-400 text-[11px] font-medium">{actionError}</p>
+        <p className="mt-2 text-rose-700 bg-rose-50 border border-rose-200 p-1.5 rounded text-[11px] font-medium">{actionError}</p>
       )}
     </div>
   )
 }
-

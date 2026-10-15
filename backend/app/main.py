@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 
 from app.config import settings
-from app.api import health, stops, vehicles, demand, hotspots, dispatch
+from app.api import health, stops, vehicles, demand, hotspots, dispatch, simulation
 from app.database import get_db_path
 
 app = FastAPI(
@@ -15,16 +15,20 @@ app = FastAPI(
 )
 
 # Configure CORS
-origins = [
+cors_origins_raw = getattr(settings, "CORS_ORIGINS", "")
+custom_origins = [o.strip() for o in cors_origins_raw.split(",") if o.strip()] if cors_origins_raw else []
+
+origins = list(set([
     settings.FRONTEND_ORIGIN,
     "http://localhost:5173",
     "http://localhost:3000",
     "http://127.0.0.1:5173",
-]
+    *custom_origins
+]))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"] if cors_origins_raw == "*" else origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,6 +41,7 @@ app.include_router(vehicles.router, prefix="/api", tags=["vehicles"])
 app.include_router(demand.router, prefix="/api", tags=["demand"])
 app.include_router(hotspots.router, prefix="/api", tags=["hotspots"])
 app.include_router(dispatch.router, prefix="/api", tags=["dispatch"])
+app.include_router(simulation.router, prefix="/api", tags=["simulation"])
 
 @app.on_event("startup")
 def on_startup():

@@ -76,13 +76,72 @@ def reject_recommendation(rec_id: int, body: Optional[DispatchRecommendationReje
         return updated
 
 @router.post("/dispatch/recommendations/{rec_id}/adjust", response_model=DispatchRecommendation)
-def adjust_recommendation(rec_id: int, body: DispatchRecommendationAdjust):
+async def adjust_recommendation(rec_id: int, body: DispatchRecommendationAdjust):
     notes = body.notes or "Adjusted by operator"
     with get_db() as conn:
         repo = DispatchRepository(conn)
         rec = repo.get_by_id(rec_id)
         if not rec:
             raise HTTPException(status_code=404, detail="Recommendation not found")
+
+        # If vehicle_id or destination_stop_id changed, validate and update recommendation details
+        new_veh_id = body.vehicle_id or rec.vehicle_id
+        new_dest_id = body.destination_stop_id or rec.destination_stop_id
+
+        if new_veh_id != rec.vehicle_id or new_dest_id != rec.destination_stop_id:
+            from app.repositories.vehicles import VehicleRepository
+            from app.repositories.stops import StopRepository
+            from app.services.routing import get_route_estimate
+
+            veh_repo = VehicleRepository(conn)
+            stop_repo = StopRepository(conn)
+            veh = veh_repo.get_by_id(new_veh_id)
+            dest = stop_repo.get_by_id(new_dest_id)
+
+            if not veh or not dest:
+                raise HTTPException(status_code=400, detail="Invalid vehicle or destination stop")
+
+            if veh.status != "available" and veh.id != rec.vehicle_id:
+                raise HTTPException(status_code=400, detail=f"Vehicle {veh.vehicle_code} is not available")
+
+            # Compute new route estimate
+            route_res = await get_route_estimate(
+                origin_lat=veh.latitude,
+                origin_lon=veh.longitude,
+                dest_lat=dest.latitude,
+                dest_lon=dest.longitude,
+            )
+
+            conn.execute(
+                """
+                UPDATE dispatch_recommendations
+                SET vehicle_id = ?, destination_stop_id = ?, useful_capacity = ?,
+                    estimated_arrival_minutes = ?, estimated_distance_km = ?, route_source = ?,
+                    status = 'adjusted', reviewed_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now'), reviewed_by = 'dispatcher',
+                    reason = ?
+                WHERE id = ?
+                """,
+                (
+                    new_veh_id,
+                    new_dest_id,
+                    veh.available_seats,
+                    route_res.duration_minutes,
+                    route_res.distance_km,
+                    route_res.source,
+                    f"Adjusted by operator to assign {veh.vehicle_code} to {dest.name} (~{round(route_res.duration_minutes)} min).",
+                    rec_id,
+                ),
+            )
+            repo.create_log(
+                rec_id=rec_id,
+                vehicle_id=new_veh_id,
+                action="adjusted",
+                previous_state=rec.status,
+                new_state="adjusted",
+                notes=f"Adjusted target to vehicle {veh.vehicle_code}, destination {dest.name}. {notes}",
+            )
+            conn.commit()
+            return repo.get_by_id(rec_id)
 
         updated = repo.update_status(rec_id, "adjusted", reviewed_by="dispatcher", notes=notes)
         return updated

@@ -25,7 +25,7 @@ export function SurgeInjector({ stops, onInjected }: Props) {
         booking_demand: bookingDemand,
         observation_source: 'simulation_interactive',
       })
-      setStatusMsg('✓ Surge injected! Click "Generate Recommendations" above.')
+      setStatusMsg('✓ Surge observation recorded. System updated.')
       onInjected()
     } catch (err) {
       setStatusMsg(err instanceof Error ? err.message : 'Injection failed')
@@ -35,24 +35,27 @@ export function SurgeInjector({ stops, onInjected }: Props) {
   }
 
   return (
-    <div className="p-3 bg-slate-800/80 border border-slate-700/80 rounded-lg text-xs space-y-2.5">
-      <div className="flex items-center justify-between">
-        <h3 className="font-bold text-amber-400 uppercase tracking-wider text-[11px]">
-          Simulate Demand Surge
+    <div className="p-3.5 bg-white border border-slate-200 rounded-lg text-xs space-y-3 shadow-xs">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+        <h3 className="font-bold text-slate-900 tracking-tight text-xs uppercase">
+          Inject Passenger Surge
         </h3>
+        <span className="text-[10px] bg-amber-50 text-amber-800 font-semibold px-2 py-0.5 rounded border border-amber-200">
+          MANUAL OVERRIDE
+        </span>
       </div>
 
       <div className="space-y-2">
         <div>
-          <label className="text-slate-400 text-[10px] block mb-1">Target Location</label>
+          <label className="text-slate-600 font-semibold text-[11px] block mb-1">Target Station / Stop</label>
           <select
             value={stopId}
             onChange={(e) => setStopId(Number(e.target.value))}
-            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs focus:outline-none focus:border-blue-500"
+            className="w-full bg-white border border-slate-300 rounded-md px-2.5 py-1.5 text-slate-800 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all font-medium"
           >
             {stops.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name} ({s.location_type})
+                {s.name} ({s.location_type.replace('_', ' ')})
               </option>
             ))}
           </select>
@@ -60,25 +63,25 @@ export function SurgeInjector({ stops, onInjected }: Props) {
 
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-slate-400 text-[10px] block mb-1">Queue Count</label>
+            <label className="text-slate-600 font-semibold text-[11px] block mb-1">Platform Queue</label>
             <input
               type="number"
               min="0"
               max="500"
               value={queueCount}
               onChange={(e) => setQueueCount(Number(e.target.value))}
-              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs focus:outline-none focus:border-blue-500 font-mono"
+              className="w-full bg-white border border-slate-300 rounded-md px-2.5 py-1.5 text-slate-800 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all font-mono"
             />
           </div>
           <div>
-            <label className="text-slate-400 text-[10px] block mb-1">Booking Count</label>
+            <label className="text-slate-600 font-semibold text-[11px] block mb-1">Advance Bookings</label>
             <input
               type="number"
               min="0"
               max="200"
               value={bookingDemand}
               onChange={(e) => setBookingDemand(Number(e.target.value))}
-              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs focus:outline-none focus:border-blue-500 font-mono"
+              className="w-full bg-white border border-slate-300 rounded-md px-2.5 py-1.5 text-slate-800 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all font-mono"
             />
           </div>
         </div>
@@ -87,18 +90,17 @@ export function SurgeInjector({ stops, onInjected }: Props) {
       <button
         onClick={handleInject}
         disabled={busy}
-        className="w-full py-1.5 px-3 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-slate-900 font-bold rounded text-xs transition-colors flex items-center justify-center gap-1.5"
+        className="w-full py-2 px-3 bg-slate-800 hover:bg-slate-900 active:bg-slate-950 disabled:opacity-50 text-white font-semibold rounded-md text-xs transition-colors shadow-xs flex items-center justify-center gap-2"
       >
         {busy ? <LoadingSpinner size="sm" /> : <span>⚡</span>}
-        Inject Surge Spike
+        Inject Custom Demand
       </button>
 
       {statusMsg && (
-        <p className="text-[11px] text-amber-300 font-medium leading-tight">
+        <p className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded p-1.5 font-medium text-center">
           {statusMsg}
         </p>
       )}
     </div>
   )
 }
-

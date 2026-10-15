@@ -13,16 +13,26 @@ class Settings(BaseSettings):
     OSRM_BASE_URL: str = "https://router.project-osrm.org"
     OSRM_TIMEOUT_SECONDS: float = 5.0
 
-    # CORS — the React dev server origin
+    # CORS — the React dev server origin or cloud frontend URL (supports comma-separated list or '*')
     FRONTEND_ORIGIN: str = "http://localhost:5173"
+    CORS_ORIGINS: str = "*"
 
     # ── Demand detection thresholds ──────────────────────────────────────────
     # Surge is detected when current_demand / historical_baseline >= SURGE_THRESHOLD
     SURGE_THRESHOLD: float = 1.5
     # Minimum passenger gap to flag as a hotspot (prevents false positives at tiny stops)
     MIN_SHORTAGE: int = 10
+    # Absolute shortage condition that triggers a hotspot regardless of ratio
+    ABSOLUTE_SHORTAGE_THRESHOLD: int = 30
     # Vehicle locations older than this are marked stale
     STALE_LOCATION_MINUTES: int = 30
+
+    # Priority thresholds
+    PRIORITY_CRITICAL_SHORTAGE: int = 50
+    PRIORITY_CRITICAL_RATIO: float = 2.5
+    PRIORITY_HIGH_SHORTAGE: int = 25
+    PRIORITY_HIGH_RATIO: float = 1.8
+    PRIORITY_MEDIUM_SHORTAGE: int = 10
 
     # ── Vehicle selection constraints ────────────────────────────────────────
     # A candidate must have at least this many free seats

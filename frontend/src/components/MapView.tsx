@@ -14,35 +14,40 @@ interface Props {
 function priorityColor(priority: string): string {
   switch (priority) {
     case 'critical':
-      return '#ef4444'
+      return '#dc2626'
     case 'high':
-      return '#f97316'
+      return '#ea580c'
     case 'medium':
-      return '#eab308'
+      return '#d97706'
     case 'low':
-      return '#22c55e'
+      return '#16a34a'
     default:
-      return '#64748b'
+      return '#475569'
   }
 }
 
-function makeStopIcon(color: string) {
+function makeStopIcon(color: string, isHotspot: boolean) {
+  const size = isHotspot ? 16 : 12
+  const pulse = isHotspot ? 'box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.2);' : ''
   return L.divIcon({
-    html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid #ffffff;box-shadow:0 1px 4px rgba(0,0,0,0.6)"></div>`,
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid #ffffff;${pulse}box-shadow:0 1px 4px rgba(0,0,0,0.35)"></div>`,
     className: '',
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
-    popupAnchor: [0, -8],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2 - 4],
   })
 }
 
-const BUS_ICON = L.divIcon({
-  html: `<div style="font-size:20px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">🚌</div>`,
-  className: '',
-  iconSize: [22, 22],
-  iconAnchor: [11, 11],
-  popupAnchor: [0, -12],
-})
+function makeBusIcon(status: string) {
+  const bg = status === 'available' ? '#059669' : status === 'assigned' ? '#2563eb' : '#64748b'
+  return L.divIcon({
+    html: `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:${bg};border:2px solid #ffffff;border-radius:6px;box-shadow:0 2px 5px rgba(0,0,0,0.25);font-size:12px;color:#ffffff;">🚏</div>`,
+    className: '',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -14],
+  })
+}
 
 function MapFlyController({ rec }: { rec: DispatchRecommendation | null }) {
   const map = useMap()
@@ -50,8 +55,7 @@ function MapFlyController({ rec }: { rec: DispatchRecommendation | null }) {
     if (rec && rec.route_geometry?.coordinates?.length) {
       const coords = rec.route_geometry.coordinates
       const mid = coords[Math.floor(coords.length / 2)]
-      // mid is [lon, lat] from OSRM, map flyTo takes [lat, lon]
-      map.flyTo([mid[1], mid[0]], 11, { duration: 1 })
+      map.flyTo([mid[1], mid[0]], 11, { duration: 0.8 })
     }
   }, [rec, map])
   return null
@@ -68,7 +72,6 @@ export function MapView({ stops, vehicles, hotspots, selectedRecommendation }: P
   if (selectedRecommendation) {
     const geo = selectedRecommendation.route_geometry
     if (geo?.coordinates?.length) {
-      // OSRM provides [lon, lat] -> Leaflet requires [lat, lon]
       routePositions = geo.coordinates.map(([lon, lat]) => [lat, lon] as [number, number])
       isEstimated = geo.source === 'haversine_estimate'
     } else {
@@ -85,7 +88,7 @@ export function MapView({ stops, vehicles, hotspots, selectedRecommendation }: P
   }
 
   return (
-    <div className="relative w-full h-full bg-slate-950">
+    <div className="relative w-full h-full bg-slate-100">
       <MapContainer
         center={center}
         zoom={10}
@@ -104,25 +107,25 @@ export function MapView({ stops, vehicles, hotspots, selectedRecommendation }: P
           .filter((s) => s.is_active)
           .map((stop) => {
             const hotspot = hotspotMap.get(stop.id)
-            const color = hotspot ? priorityColor(hotspot.priority) : '#64748b'
+            const color = hotspot ? priorityColor(hotspot.priority) : '#475569'
             return (
               <Marker
                 key={stop.id}
                 position={[stop.latitude, stop.longitude]}
-                icon={makeStopIcon(color)}
+                icon={makeStopIcon(color, !!hotspot)}
               >
                 <Popup>
-                  <div className="text-xs space-y-1">
-                    <p className="font-bold text-slate-900">{stop.name}</p>
+                  <div className="text-xs space-y-1.5 p-0.5">
+                    <p className="font-bold text-slate-900 border-b border-slate-100 pb-1">{stop.name}</p>
                     <p className="text-slate-500 capitalize">{stop.location_type.replace('_', ' ')}</p>
                     {hotspot ? (
-                      <div className="pt-1 border-t border-slate-200 text-slate-700">
-                        <p>Waiting Queue: <b>{hotspot.current_demand}</b></p>
-                        <p className="text-red-600">Capacity Shortage: <b>{hotspot.capacity_shortage}</b></p>
-                        <p className="text-slate-400">Updated: {timeAgo(hotspot.observed_at)}</p>
+                      <div className="pt-1.5 border-t border-slate-200 text-slate-700 space-y-0.5">
+                        <p>Passenger Queue: <b>{hotspot.current_demand}</b></p>
+                        <p className="text-rose-700 font-semibold">Capacity Deficit: <b>-{hotspot.capacity_shortage}</b></p>
+                        <p className="text-[10px] text-slate-400">Updated: {timeAgo(hotspot.observed_at)}</p>
                       </div>
                     ) : (
-                      <p className="text-green-600 font-medium">Normal operating conditions</p>
+                      <p className="text-emerald-700 font-medium">Standard operating baseline</p>
                     )}
                   </div>
                 </Popup>
@@ -134,17 +137,17 @@ export function MapView({ stops, vehicles, hotspots, selectedRecommendation }: P
         {vehicles
           .filter((v) => v.latitude != null && v.longitude != null && v.status !== 'out_of_service')
           .map((v) => (
-            <Marker key={v.id} position={[v.latitude!, v.longitude!]} icon={BUS_ICON}>
+            <Marker key={v.id} position={[v.latitude!, v.longitude!]} icon={makeBusIcon(v.status)}>
               <Popup>
-                <div className="text-xs space-y-1">
-                  <p className="font-bold text-slate-900">{v.vehicle_code}</p>
+                <div className="text-xs space-y-1.5 p-0.5">
+                  <p className="font-bold text-slate-900 font-mono border-b border-slate-100 pb-1">{v.vehicle_code}</p>
                   <p className="text-slate-600">
                     Status: <span className="capitalize font-semibold">{v.status.replace('_', ' ')}</span>
                   </p>
                   <p className="text-slate-600">
-                    Available Seats: <b>{v.available_seats}</b> / {v.capacity}
+                    Available Capacity: <b>{v.available_seats}</b> / {v.capacity} seats
                   </p>
-                  <p className="text-slate-400">GPS: {timeAgo(v.location_updated_at)}</p>
+                  <p className="text-[10px] text-slate-400">Telemetry: {timeAgo(v.location_updated_at)}</p>
                 </div>
               </Popup>
             </Marker>
@@ -155,45 +158,46 @@ export function MapView({ stops, vehicles, hotspots, selectedRecommendation }: P
           <Polyline
             positions={routePositions}
             pathOptions={{
-              color: '#3b82f6',
+              color: '#1d4ed8',
               weight: isEstimated ? 3 : 5,
               dashArray: isEstimated ? '8, 8' : undefined,
-              opacity: 0.9,
+              opacity: 0.85,
             }}
           />
         )}
       </MapContainer>
 
       {/* Map Legend Overlay */}
-      <div className="absolute bottom-4 left-4 z-[1000] bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg shadow-xl p-3 text-[11px] space-y-1.5 pointer-events-auto">
-        <p className="font-bold text-slate-200">Map Legend</p>
+      <div className="absolute bottom-4 left-4 z-[1000] bg-white/95 backdrop-blur-xs border border-slate-300 rounded-lg shadow-md p-3 text-[11px] space-y-2 pointer-events-auto max-w-xs">
+        <p className="font-bold text-slate-900 border-b border-slate-200 pb-1 uppercase tracking-wider text-[10px]">
+          Operational Map Legend
+        </p>
         <div className="space-y-1">
           {[
-            ['#ef4444', 'Critical Shortage'],
-            ['#f97316', 'High Shortage'],
-            ['#eab308', 'Moderate Surge'],
-            ['#22c55e', 'Normal / Balanced'],
-            ['#64748b', 'Baseline Stop'],
+            ['#dc2626', 'Critical Surge (≥50 shortfall)'],
+            ['#ea580c', 'High Demand (≥25 shortfall)'],
+            ['#d97706', 'Moderate Shortage (≥10)'],
+            ['#475569', 'Normal Transit Baseline'],
           ].map(([col, label]) => (
             <div key={label} className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full border border-white" style={{ background: col }} />
-              <span className="text-slate-300">{label}</span>
+              <span className="w-2.5 h-2.5 rounded-full border border-white shadow-xs" style={{ background: col }} />
+              <span className="text-slate-700">{label}</span>
             </div>
           ))}
         </div>
-        <div className="pt-1.5 border-t border-slate-700/80 flex items-center gap-2">
-          <span>🚌</span>
-          <span className="text-slate-300">Active Bus</span>
+        <div className="pt-1.5 border-t border-slate-200 flex items-center gap-2">
+          <span className="w-3.5 h-3.5 bg-emerald-700 rounded-xs flex items-center justify-center text-[8px] text-white">🚏</span>
+          <span className="text-slate-700">Fleet Bus (Green: Idle / Blue: Assigned)</span>
         </div>
         {routePositions && (
-          <div className="flex items-center gap-2 pt-1 border-t border-slate-700/80">
+          <div className="flex items-center gap-2 pt-1 border-t border-slate-200">
             <span
               className={`w-5 h-0.5 ${
-                isEstimated ? 'border-t-2 border-dashed border-blue-400' : 'bg-blue-500'
+                isEstimated ? 'border-t-2 border-dashed border-blue-700' : 'bg-blue-700'
               }`}
             />
-            <span className="text-blue-300 font-medium">
-              {isEstimated ? 'Haversine Est. Route' : 'OSRM Road Route'}
+            <span className="text-blue-900 font-semibold">
+              {isEstimated ? 'Estimated Corridor' : 'OSRM Road Highway Route'}
             </span>
           </div>
         )}
@@ -201,4 +205,3 @@ export function MapView({ stops, vehicles, hotspots, selectedRecommendation }: P
     </div>
   )
 }
-

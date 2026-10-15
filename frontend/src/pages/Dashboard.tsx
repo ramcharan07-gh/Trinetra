@@ -6,6 +6,8 @@ import { RecommendationCard } from '@/features/dispatch/RecommendationCard'
 import { DispatchHistory } from '@/features/dispatch/DispatchHistory'
 import { ImpactPanel } from '@/features/impact/ImpactPanel'
 import { SurgeInjector } from '@/features/dispatch/SurgeInjector'
+import { SimulationControls } from '@/features/dispatch/SimulationControls'
+import { OverviewBar } from '@/components/OverviewBar'
 import { DataSourceBadge } from '@/components/DataSourceBadge'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import {
@@ -29,6 +31,7 @@ export function Dashboard() {
   const impact = useImpact()
 
   const [selected, setSelected] = useState<DispatchRecommendation | null>(null)
+  const [selectedStopId, setSelectedStopId] = useState<number | null>(null)
   const [generating, setGenerating] = useState(false)
   const [genError, setGenError] = useState<string | null>(null)
 
@@ -58,43 +61,69 @@ export function Dashboard() {
 
   const lastUpdated = hotspots.lastUpdated ?? recs.lastUpdated
 
+  // Filter recommendations if a specific hotspot stop was clicked
+  const filteredRecs = selectedStopId
+    ? recs.data?.filter((r) => r.destination_stop_id === selectedStopId)
+    : recs.data
+
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
-      {/* Top Navbar */}
-      <header className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex-shrink-0 z-10">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🔭</span>
-            <span className="text-base font-black tracking-wider text-white">TRINETRA</span>
+    <div className="flex flex-col h-screen bg-slate-100 text-slate-800 font-sans overflow-hidden">
+      {/* Official Government Transport Portal Header */}
+      <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200 flex-shrink-0 z-10 shadow-xs">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-blue-700 text-white rounded-md flex items-center justify-center font-black text-lg shadow-xs">
+              TR
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-base font-extrabold tracking-tight text-slate-900">
+                  TRINETRA
+                </span>
+                <span className="text-[10px] bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded border border-slate-200">
+                  v2.0
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium">
+                Public Bus Fleet Dynamic Reallocation & Demand Management Portal
+              </p>
+            </div>
           </div>
-          <span className="text-xs text-slate-500 font-medium hidden sm:inline-block border-l border-slate-800 pl-3">
-            Real-Time Vehicle Reallocation on Demand Spikes
-          </span>
+          <div className="h-6 w-px bg-slate-200 hidden md:block" />
           <DataSourceBadge />
         </div>
 
         <div className="flex items-center gap-3">
           {lastUpdated && (
-            <span className="text-[11px] text-slate-500 font-mono hidden md:inline-block">
-              Refreshed {formatTime(lastUpdated.toISOString())}
+            <span className="text-xs text-slate-500 font-mono hidden md:inline-block">
+              Telemetry Synchronized: {formatTime(lastUpdated.toISOString())}
             </span>
           )}
 
           <button
             onClick={generateRecommendations}
             disabled={generating}
-            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold px-3 py-1.5 rounded shadow transition-colors"
+            className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 active:bg-blue-900 disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded-md shadow-xs transition-colors"
           >
             {generating ? <LoadingSpinner size="sm" /> : <span>⚡</span>}
-            Generate Reallocations
+            <span>Compute Reallocation Plan</span>
           </button>
         </div>
       </header>
 
+      {/* Top Overview KPI Summary Bar */}
+      <OverviewBar
+        vehicles={vehicles.data ?? []}
+        totalHotspots={hotspots.data?.length ?? 0}
+        totalRecommendations={recs.data?.length ?? 0}
+        avgWaitReduction={impact.data?.average_wait_reduction_percent ?? null}
+        avgEta={impact.data?.average_eta_minutes ?? null}
+      />
+
       {genError && (
-        <div className="bg-red-950/80 border-b border-red-800 text-red-200 text-xs px-4 py-1.5 flex items-center justify-between">
+        <div className="bg-rose-50 border-b border-rose-200 text-rose-800 text-xs px-6 py-2 flex items-center justify-between">
           <span>{genError}</span>
-          <button onClick={() => setGenError(null)} className="text-red-400 hover:text-white">
+          <button onClick={() => setGenError(null)} className="text-rose-600 hover:text-rose-900 font-bold">
             ✕
           </button>
         </div>
@@ -103,16 +132,21 @@ export function Dashboard() {
       {/* Main App Layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Side Control & Monitoring Column */}
-        <aside className="w-80 flex-shrink-0 border-r border-slate-800 bg-slate-900/95 flex flex-col overflow-y-auto">
-          <div className="flex flex-col gap-4 p-3.5">
+        <aside className="w-84 flex-shrink-0 border-r border-slate-200 bg-slate-50/80 flex flex-col overflow-y-auto">
+          <div className="flex flex-col gap-4 p-4">
+            {/* Predefined Simulation Scenarios Runner */}
+            <SimulationControls onScenarioRan={allRefetch} disabled={generating} />
+
             <HotspotPanel
               hotspots={hotspots.data}
               loading={hotspots.loading}
               error={hotspots.error}
               onRetry={hotspots.refetch}
+              onSelectHotspot={(stopId) => {
+                setSelectedStopId((prev) => (prev === stopId ? null : stopId))
+              }}
+              selectedStopId={selectedStopId}
             />
-
-            <hr className="border-slate-800" />
 
             <VehiclePanel
               vehicles={vehicles.data}
@@ -121,16 +155,12 @@ export function Dashboard() {
               onRetry={vehicles.refetch}
             />
 
-            <hr className="border-slate-800" />
-
             <ImpactPanel
               metrics={impact.data}
               loading={impact.loading}
               error={impact.error}
               onRetry={impact.refetch}
             />
-
-            <hr className="border-slate-800" />
 
             {stops.data && (
               <SurgeInjector
@@ -142,9 +172,9 @@ export function Dashboard() {
         </aside>
 
         {/* Center / Right Content: Map + Recommendations View */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-slate-950">
+        <main className="flex-1 flex flex-col overflow-hidden bg-white">
           {/* Map Section (Upper 55%) */}
-          <div className="flex-shrink-0" style={{ height: '56%' }}>
+          <div className="flex-shrink-0 border-b border-slate-200" style={{ height: '56%' }}>
             <MapView
               stops={stops.data ?? []}
               vehicles={vehicles.data ?? []}
@@ -154,43 +184,49 @@ export function Dashboard() {
           </div>
 
           {/* Lower Split: Recommendations Carousel + Dispatch History (44%) */}
-          <div className="flex-1 flex overflow-hidden border-t border-slate-800 bg-slate-900/60">
+          <div className="flex-1 flex overflow-hidden bg-slate-50">
             {/* Dispatch Recommendation Cards Section */}
-            <div className="flex-1 flex flex-col overflow-hidden border-r border-slate-800">
-              <div className="flex items-center justify-between px-3.5 py-2 border-b border-slate-800 bg-slate-900/90 flex-shrink-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+            <div className="flex-1 flex flex-col overflow-hidden border-r border-slate-200">
+              <div className="flex items-center justify-between px-5 py-2.5 border-b border-slate-200 bg-white flex-shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                     Recommended Bus Reallocations
                   </h2>
                   {recs.data && (
-                    <span className="text-[11px] bg-blue-950 text-blue-300 border border-blue-800 px-1.5 py-0.2 rounded font-mono">
-                      {recs.data.filter((r) => r.status === 'proposed').length} Pending Review
+                    <span className="text-[11px] bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded-full font-semibold">
+                      {recs.data.filter((r) => r.status === 'proposed').length} Action Required
+                    </span>
+                  )}
+                  {selectedStopId && (
+                    <span className="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200 flex items-center gap-1">
+                      Filtered by Station
+                      <button onClick={() => setSelectedStopId(null)} className="font-bold text-slate-500 hover:text-slate-800">×</button>
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] text-slate-500">
-                  Select card to view route geometry on map
+                <span className="text-[11px] text-slate-500 font-medium">
+                  Select card to inspect route corridor on map
                 </span>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {recs.loading && !recs.data && (
-                  <div className="flex justify-center py-8">
+                  <div className="flex justify-center py-10">
                     <LoadingSpinner />
                   </div>
                 )}
 
-                {recs.data && recs.data.length === 0 && (
-                  <div className="text-center py-10 text-slate-500 text-xs space-y-1">
-                    <p className="font-semibold text-slate-400">No Reallocation Recommendations Pending</p>
-                    <p>
-                      Use the "Simulate Demand Surge" form on the left, then click "Generate Reallocations".
+                {filteredRecs && filteredRecs.length === 0 && (
+                  <div className="text-center py-12 text-slate-500 text-xs space-y-1 bg-white border border-slate-200 rounded-lg p-6">
+                    <p className="font-semibold text-slate-700 text-sm">No Pending Reallocations</p>
+                    <p className="text-slate-500">
+                      All locations have adequate local capacity. Use "Run Evaluation Scenario" on the left to test surge conditions.
                     </p>
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  {recs.data?.map((rec) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {filteredRecs?.map((rec) => (
                     <RecommendationCard
                       key={rec.id}
                       rec={rec}
@@ -204,13 +240,13 @@ export function Dashboard() {
             </div>
 
             {/* Audit Log / History Sidebar */}
-            <div className="w-72 flex-shrink-0 flex flex-col overflow-hidden bg-slate-900/80">
-              <div className="px-3.5 py-2 border-b border-slate-800 bg-slate-900/90 flex-shrink-0">
-                <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                  Operator Actions
+            <div className="w-80 flex-shrink-0 flex flex-col overflow-hidden bg-white">
+              <div className="px-4 py-2.5 border-b border-slate-200 bg-white flex-shrink-0">
+                <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Operational Audit Log
                 </h2>
               </div>
-              <div className="flex-1 overflow-y-auto p-3">
+              <div className="flex-1 overflow-y-auto p-3.5 bg-slate-50/50">
                 <DispatchHistory
                   history={history.data}
                   loading={history.loading}
@@ -225,4 +261,3 @@ export function Dashboard() {
     </div>
   )
 }
-

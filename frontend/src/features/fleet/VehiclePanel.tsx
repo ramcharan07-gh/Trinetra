@@ -15,20 +15,21 @@ export function VehiclePanel({ vehicles, loading, error, onRetry }: Props) {
   const availableCount = vehicles?.filter((v) => v.status === 'available').length ?? 0
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2.5">
       <div className="flex items-center justify-between px-1">
-        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-          Fleet Monitoring
-        </h2>
+        <div className="flex items-center gap-1.5 font-bold text-slate-900 tracking-tight text-xs uppercase">
+          <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+          <span>Fleet Real-Time Status</span>
+        </div>
         {vehicles && (
-          <span className="text-[11px] text-slate-500 font-mono">
+          <span className="text-[11px] bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded border border-slate-200">
             {availableCount}/{vehicles.length} Available
           </span>
         )}
       </div>
 
       {loading && !vehicles && (
-        <div className="flex justify-center py-4">
+        <div className="flex justify-center py-6">
           <LoadingSpinner />
         </div>
       )}
@@ -41,21 +42,21 @@ export function VehiclePanel({ vehicles, loading, error, onRetry }: Props) {
           return (
             <div
               key={v.id}
-              className={`p-2 rounded border text-xs transition-colors ${
+              className={`p-2.5 rounded-md border text-xs transition-colors ${
                 isAvailable
-                  ? 'bg-slate-800/80 border-slate-700 hover:border-slate-600'
-                  : 'bg-slate-900/60 border-slate-800/60 opacity-60'
+                  ? 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
+                  : 'bg-slate-50 border-slate-200 text-slate-500'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-slate-200">{v.vehicle_code}</span>
+                <span className="font-bold text-slate-900 font-mono">{v.vehicle_code}</span>
                 <StatusBadge value={v.status} />
               </div>
-              <div className="flex items-center justify-between mt-1 text-[11px] text-slate-400">
+              <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
                 <span>
-                  Seats: <b className="text-slate-300">{v.available_seats}</b> / {v.capacity}
+                  Seats Free: <b className="text-slate-800">{v.available_seats}</b> / {v.capacity}
                 </span>
-                <span>GPS: {timeAgo(v.location_updated_at)}</span>
+                <span className="text-[10px]">GPS: {timeAgo(v.location_updated_at)}</span>
               </div>
             </div>
           )
@@ -64,4 +65,3 @@ export function VehiclePanel({ vehicles, loading, error, onRetry }: Props) {
     </div>
   )
 }
-

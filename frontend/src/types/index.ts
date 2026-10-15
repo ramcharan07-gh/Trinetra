@@ -100,3 +100,23 @@ export interface ImpactMetrics {
   average_wait_reduction_percent: number | null
 }
 
+export interface SimulationScenario {
+  id: number
+  name: string
+  description: string
+  config: Record<string, any>
+  created_at: string
+}
+
+export interface SimulationComparison {
+  scenario_name: string
+  baseline_avg_wait_minutes: number
+  reallocation_avg_wait_minutes: number
+  wait_reduction_percent: number
+  passengers_served: number
+  residual_queue: number
+  vehicles_reassigned: number
+  recommendation_latency_ms: number
+  data_mode: string
+}
+
