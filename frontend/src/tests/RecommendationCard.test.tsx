@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { RecommendationCard } from '@/features/dispatch/RecommendationCard'
 import type { DispatchRecommendation } from '@/types'
@@ -55,7 +55,7 @@ describe('RecommendationCard', () => {
     expect(screen.getByText('8 min')).toBeInTheDocument()
   })
 
-  it('shows approve and reject buttons for proposed status', () => {
+  it('shows approve, adjust, and reject buttons for proposed status', () => {
     render(
       <RecommendationCard
         rec={mockRec}
@@ -65,7 +65,36 @@ describe('RecommendationCard', () => {
       />
     )
     expect(screen.getByText(/Approve/i)).toBeInTheDocument()
+    expect(screen.getByText(/Adjust/i)).toBeInTheDocument()
     expect(screen.getByText(/Reject/i)).toBeInTheDocument()
   })
-})
 
+  it('opens in-place adjustment drawer when Adjust is clicked', () => {
+    render(
+      <RecommendationCard
+        rec={mockRec}
+        onAction={vi.fn()}
+        onSelect={vi.fn()}
+        isSelected={false}
+      />
+    )
+
+    // Click Adjust
+    fireEvent.click(screen.getByText(/Adjust/i))
+
+    // In-place adjustment drawer appears
+    expect(screen.getByText(/Operational Reallocation Adjustment/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/Type custom dispatch instructions/i)).toBeInTheDocument()
+    expect(screen.getByText(/Save & Apply Adjustment/i)).toBeInTheDocument()
+
+    // Clicking a preset chip populates the input
+    const preset = screen.getByText(/\+ Hold 5m for connecting train/i)
+    fireEvent.click(preset)
+    const textarea = screen.getByPlaceholderText(/Type custom dispatch instructions/i) as HTMLTextAreaElement
+    expect(textarea.value).toBe('Hold 5m for connecting train')
+
+    // Clicking Cancel closes the drawer
+    fireEvent.click(screen.getByText(/Cancel/i))
+    expect(screen.queryByText(/Operational Reallocation Adjustment/i)).not.toBeInTheDocument()
+  })
+})
