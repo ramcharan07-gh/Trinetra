@@ -38,14 +38,22 @@ class DemandDetectionService:
         day_of_week = now.weekday()
         time_window = get_current_time_window(now)
 
-        # Estimate currently available capacity near/serving each stop
-        # A vehicle is counted if available and within ~0.02 deg (~2km) of the stop
+        # Estimate currently available capacity specifically stationed at each stop
+        # A vehicle is counted only at its single nearest stop within ~0.005 deg (~500m)
         available_capacity_by_stop: Dict[int, int] = {s_id: 0 for s_id in stops.keys()}
         for v in vehicles:
             if v.status == "available" and v.latitude is not None and v.longitude is not None:
+                # Find the single nearest stop
+                best_stop_id = None
+                min_dist_sq = float("inf")
                 for s_id, s in stops.items():
-                    if abs(v.latitude - s.latitude) < 0.02 and abs(v.longitude - s.longitude) < 0.02:
-                        available_capacity_by_stop[s_id] += v.available_seats
+                    dist_sq = (v.latitude - s.latitude) ** 2 + (v.longitude - s.longitude) ** 2
+                    if dist_sq < min_dist_sq:
+                        min_dist_sq = dist_sq
+                        best_stop_id = s_id
+                # Only attribute capacity if within ~500m (0.005 deg squared = 0.000025)
+                if best_stop_id and min_dist_sq < 0.000025:
+                    available_capacity_by_stop[best_stop_id] += v.available_seats
 
         hotspots: List[Hotspot] = []
 

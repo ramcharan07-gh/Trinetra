@@ -51,24 +51,30 @@ ROUTES = [
 # ─── Simulated vehicles ─────────────────────────────────────────────────────
 # Positions are slightly offset from stop coordinates to simulate realistic placement.
 VEHICLES = [
-    # Buses near Madanapalle Bus Stand (stop 1)
+    # Buses near Madanapalle Bus Stand (Central Depot - stop 1)
     {"code": "AP 27 Z 0045", "cap": 52, "occ": 12, "lat": 13.5498, "lon": 78.5010, "status": "available"},
     {"code": "AP 27 Z 0046", "cap": 45, "occ": 38, "lat": 13.5502, "lon": 78.5015, "status": "in_service"},
     {"code": "AP 27 Z 0051", "cap": 60, "occ": 14, "lat": 13.5497, "lon": 78.5008, "status": "available"},
+    {"code": "AP 27 Z 0060", "cap": 55, "occ": 10, "lat": 13.5504, "lon": 78.5011, "status": "available"},
+    # Buses near MITS College (stop 2)
+    {"code": "AP 27 Z 0061", "cap": 50, "occ": 42, "lat": 13.5620, "lon": 78.5132, "status": "in_service"},
     # Buses near Railway Station (stop 3)
     {"code": "AP 27 Z 0047", "cap": 52, "occ":  5, "lat": 13.5476, "lon": 78.4963, "status": "available"},
+    {"code": "AP 27 Z 0062", "cap": 48, "occ": 11, "lat": 13.5479, "lon": 78.4965, "status": "available"},
     # Buses near Punganur (stop 4)
     {"code": "AP 27 Z 0048", "cap": 40, "occ": 30, "lat": 13.3679, "lon": 78.5728, "status": "in_service"},
     {"code": "AP 27 Z 0054", "cap": 52, "occ":  8, "lat": 13.3683, "lon": 78.5724, "status": "available"},
     # Buses near Pileru (stop 5)
     {"code": "AP 27 Z 0050", "cap": 45, "occ": 15, "lat": 13.6532, "lon": 78.9467, "status": "available"},
+    {"code": "AP 27 Z 0063", "cap": 52, "occ": 14, "lat": 13.6535, "lon": 78.9469, "status": "available"},
     # Buses near Vayalpad (stop 6)
     {"code": "AP 27 Z 0049", "cap": 52, "occ": 20, "lat": 13.8202, "lon": 78.6302, "status": "available"},
     # Buses near Palamaner (stop 7)
     {"code": "AP 27 Z 0055", "cap": 40, "occ": 22, "lat": 13.2026, "lon": 78.7484, "status": "available"},
+    {"code": "AP 27 Z 0064", "cap": 55, "occ":  9, "lat": 13.2030, "lon": 78.7486, "status": "available"},
     # Buses near Kuppam (stop 8)
     {"code": "AP 27 Z 0053", "cap": 45, "occ": 10, "lat": 12.7451, "lon": 78.3432, "status": "available"},
-    # Out-of-service buses (should be excluded from recommendations)
+    # Out-of-service maintenance buses (excluded from reallocation)
     {"code": "AP 27 Z 0056", "cap": 52, "occ":  0, "lat": 13.5500, "lon": 78.5012, "status": "out_of_service"},
     {"code": "AP 27 Z 0057", "cap": 45, "occ":  0, "lat": 13.5500, "lon": 78.5012, "status": "out_of_service"},
 ]

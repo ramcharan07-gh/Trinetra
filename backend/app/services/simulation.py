@@ -11,47 +11,47 @@ from app.services.impact import calculate_waiting_time_impact
 
 PREDEFINED_SCENARIOS = [
     {
-        "name": "Scenario A: Normal Operations",
-        "description": "Demand remains within regular scheduled capacity across all 8 transit hubs. No surge reallocations triggered.",
+        "name": "Scenario 1: College Dismissal Rush (MITS College)",
+        "description": "Afternoon bell release at 16:30 at MITS College. 195 students surge into the transit queue against a normal 40 baseline. Triggers emergency bus dispatches from Madanapalle Depot.",
         "config": {
             "observations": [
                 {"stop_id": 1, "queue_count": 22, "booking_demand": 5},
-                {"stop_id": 2, "queue_count": 25, "booking_demand": 10},
+                {"stop_id": 2, "queue_count": 165, "booking_demand": 30}, # 195 surge at MITS College
                 {"stop_id": 3, "queue_count": 18, "booking_demand": 4},
                 {"stop_id": 4, "queue_count": 15, "booking_demand": 2},
                 {"stop_id": 5, "queue_count": 12, "booking_demand": 0},
                 {"stop_id": 6, "queue_count": 10, "booking_demand": 0},
-                {"stop_id": 7, "queue_count": 20, "booking_demand": 5},
+                {"stop_id": 7, "queue_count": 16, "booking_demand": 3},
                 {"stop_id": 8, "queue_count": 14, "booking_demand": 2},
-            ],
-            "vehicle_status": "all_available"
-        }
-    },
-    {
-        "name": "Scenario B: MITS College Surge",
-        "description": "Classes end at 16:30 releasing sudden student crowd at MITS College. 180 passengers waiting against 20 normal baseline.",
-        "config": {
-            "observations": [
-                {"stop_id": 1, "queue_count": 20, "booking_demand": 5},
-                {"stop_id": 2, "queue_count": 160, "booking_demand": 20}, # 180 surge at MITS
-                {"stop_id": 3, "queue_count": 25, "booking_demand": 5},
-                {"stop_id": 4, "queue_count": 15, "booking_demand": 2},
-                {"stop_id": 5, "queue_count": 12, "booking_demand": 0},
-                {"stop_id": 6, "queue_count": 10, "booking_demand": 0},
-                {"stop_id": 7, "queue_count": 18, "booking_demand": 0},
-                {"stop_id": 8, "queue_count": 15, "booking_demand": 0},
             ],
             "vehicle_status": "mixed"
         }
     },
     {
-        "name": "Scenario C: Multi-Hub Shortage (Insufficient Fleet)",
-        "description": "Simultaneous surges at MITS College (150 passengers) and Railway Station (120 passengers) with limited spare buses.",
+        "name": "Scenario 2: Evening Railway Express Arrival Spike",
+        "description": "Rayalaseema Express pulls into Madanapalle Road Railway Station at 18:30, offloading 210 passengers heading into town. Severe queue buildup requires rapid reallocation.",
+        "config": {
+            "observations": [
+                {"stop_id": 1, "queue_count": 25, "booking_demand": 5},
+                {"stop_id": 2, "queue_count": 20, "booking_demand": 5},
+                {"stop_id": 3, "queue_count": 175, "booking_demand": 35}, # 210 surge at Railway Station
+                {"stop_id": 4, "queue_count": 14, "booking_demand": 2},
+                {"stop_id": 5, "queue_count": 12, "booking_demand": 0},
+                {"stop_id": 6, "queue_count": 10, "booking_demand": 0},
+                {"stop_id": 7, "queue_count": 15, "booking_demand": 2},
+                {"stop_id": 8, "queue_count": 12, "booking_demand": 0},
+            ],
+            "vehicle_status": "mixed"
+        }
+    },
+    {
+        "name": "Scenario 3: Twin-Hub Simultaneous Surge (MITS + Railway)",
+        "description": "Simultaneous peak pressure: College dismissal (140 pax) and train arrival (150 pax) occur together. Demonstrates multi-factor greedy prioritization under fleet constraints.",
         "config": {
             "observations": [
                 {"stop_id": 1, "queue_count": 30, "booking_demand": 10},
-                {"stop_id": 2, "queue_count": 130, "booking_demand": 20}, # MITS
-                {"stop_id": 3, "queue_count": 100, "booking_demand": 20}, # Railway Station
+                {"stop_id": 2, "queue_count": 120, "booking_demand": 20}, # MITS College
+                {"stop_id": 3, "queue_count": 125, "booking_demand": 25}, # Railway Station
                 {"stop_id": 4, "queue_count": 15, "booking_demand": 0},
                 {"stop_id": 5, "queue_count": 10, "booking_demand": 0},
                 {"stop_id": 6, "queue_count": 10, "booking_demand": 0},
@@ -59,6 +59,57 @@ PREDEFINED_SCENARIOS = [
                 {"stop_id": 8, "queue_count": 10, "booking_demand": 0},
             ],
             "vehicle_status": "constrained"
+        }
+    },
+    {
+        "name": "Scenario 4: Inter-District Highway Node Crisis (Palamaner)",
+        "description": "Highway bypass breakdown near Palamaner Bus Stand creates 170 stranded regional commuters. System taps spare capacity from Punganur and Madanapalle.",
+        "config": {
+            "observations": [
+                {"stop_id": 1, "queue_count": 25, "booking_demand": 5},
+                {"stop_id": 2, "queue_count": 15, "booking_demand": 5},
+                {"stop_id": 3, "queue_count": 20, "booking_demand": 2},
+                {"stop_id": 4, "queue_count": 15, "booking_demand": 2},
+                {"stop_id": 5, "queue_count": 10, "booking_demand": 0},
+                {"stop_id": 6, "queue_count": 12, "booking_demand": 0},
+                {"stop_id": 7, "queue_count": 145, "booking_demand": 25}, # 170 surge at Palamaner
+                {"stop_id": 8, "queue_count": 15, "booking_demand": 2},
+            ],
+            "vehicle_status": "mixed"
+        }
+    },
+    {
+        "name": "Scenario 5: Border Terminal Weekend Exodus (Kuppam)",
+        "description": "Weekend influx at Kuppam terminal toward Karnataka/Tamil Nadu border hubs with 160 waiting passengers. Demonstrates long-corridor ETA routing.",
+        "config": {
+            "observations": [
+                {"stop_id": 1, "queue_count": 20, "booking_demand": 5},
+                {"stop_id": 2, "queue_count": 15, "booking_demand": 2},
+                {"stop_id": 3, "queue_count": 15, "booking_demand": 2},
+                {"stop_id": 4, "queue_count": 12, "booking_demand": 0},
+                {"stop_id": 5, "queue_count": 10, "booking_demand": 0},
+                {"stop_id": 6, "queue_count": 10, "booking_demand": 0},
+                {"stop_id": 7, "queue_count": 18, "booking_demand": 2},
+                {"stop_id": 8, "queue_count": 135, "booking_demand": 25}, # 160 surge at Kuppam
+            ],
+            "vehicle_status": "mixed"
+        }
+    },
+    {
+        "name": "Scenario 6: Balanced Network (Normal Operations Baseline)",
+        "description": "Calm mid-day transit operation across all 8 Chittoor district hubs. Demand is well within regular scheduled headway; zero surge dispatches needed.",
+        "config": {
+            "observations": [
+                {"stop_id": 1, "queue_count": 20, "booking_demand": 5},
+                {"stop_id": 2, "queue_count": 18, "booking_demand": 4},
+                {"stop_id": 3, "queue_count": 15, "booking_demand": 3},
+                {"stop_id": 4, "queue_count": 12, "booking_demand": 2},
+                {"stop_id": 5, "queue_count": 10, "booking_demand": 0},
+                {"stop_id": 6, "queue_count": 8, "booking_demand": 0},
+                {"stop_id": 7, "queue_count": 14, "booking_demand": 2},
+                {"stop_id": 8, "queue_count": 12, "booking_demand": 2},
+            ],
+            "vehicle_status": "all_available"
         }
     }
 ]
@@ -70,7 +121,8 @@ class SimulationService:
     def seed_scenarios_if_empty(self) -> None:
         cursor = self.conn.execute("SELECT COUNT(*) as cnt FROM simulation_scenarios")
         count = cursor.fetchone()["cnt"]
-        if count == 0:
+        if count < len(PREDEFINED_SCENARIOS):
+            self.conn.execute("DELETE FROM simulation_scenarios")
             for s in PREDEFINED_SCENARIOS:
                 self.conn.execute(
                     "INSERT INTO simulation_scenarios (name, description, config) VALUES (?, ?, ?)",
@@ -107,9 +159,12 @@ class SimulationService:
         config = json.loads(row["config"])
         now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        # 1. Clear any prior proposed/approved recommendations to reset simulation cleanly
+        # 1. Clear prior proposed recommendations and refresh fleet telemetry timestamps
         self.conn.execute("DELETE FROM dispatch_recommendations WHERE status = 'proposed'")
-        self.conn.execute("UPDATE vehicles SET status = 'available', updated_at = ?", (now_iso,))
+        self.conn.execute(
+            "UPDATE vehicles SET status = 'available', location_updated_at = ?, updated_at = ? WHERE status != 'out_of_service'",
+            (now_iso, now_iso),
+        )
         self.conn.commit()
 
         # 2. Inject observations from scenario
